@@ -1,0 +1,166 @@
+// Nhớ phải cài thư viện trước khi chạy
+
+#include <Wire.h> // Thư viện cho I2C
+#include <LiquidCrystal_I2C.h> // Thư viện cho màn hình LCD I2C
+#include <RTClib.h> // Thư viện cho RTC DS1307
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+RTC_DS1307 rtc;
+
+const int ledPin = 7; // Chân điều khiển LED
+const int hourOn = 17; // Giờ bật LED
+const int minuteOn = 23; // Phút bật LED
+const int hourOff = 17; // Giờ tắt LED
+const int minuteOff = 32; // Phút tắt LED
+
+void setup() {
+    lcd.init();
+    lcd.backlight();
+    lcd.print("Initializing...");
+    delay(2000);
+
+    pinMode(ledPin, OUTPUT);
+    digitalWrite(ledPin, LOW); // Tắt LED ban đầu
+
+    if (!rtc.begin()) {
+        lcd.clear();
+        lcd.print("RTC Error!");
+        while (1);
+    }
+
+    if (!rtc.isrunning()) {
+        lcd.clear();
+        lcd.print("Setting RTC...");
+        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        delay(1000);
+    }
+
+    lcd.clear();
+    lcd.print("Ready");
+}
+
+void loop() {
+    DateTime now = rtc.now();
+
+    // Xác định thời gian hiện tại
+    int currentHour = now.hour();
+    int currentMinute = now.minute();
+
+    // Biến xác định trạng thái LED
+    bool isLedOn = false;
+
+    if (hourOn < hourOff || (hourOn == hourOff && minuteOn < minuteOff)) {
+        // Trường hợp khoảng thời gian bật/tắt không qua nửa đêm
+        if ((currentHour > hourOn || (currentHour == hourOn && currentMinute >= minuteOn)) &&
+            (currentHour < hourOff || (currentHour == hourOff && currentMinute < minuteOff))) {
+            isLedOn = true;
+        }
+    } else {
+        // Trường hợp khoảng thời gian bật/tắt qua nửa đêm
+        if ((currentHour > hourOn || (currentHour == hourOn && currentMinute >= minuteOn)) ||
+            (currentHour < hourOff || (currentHour == hourOff && currentMinute < minuteOff))) {
+            isLedOn = true;
+        }
+    }
+
+    // Điều khiển LED
+    digitalWrite(ledPin, isLedOn ? HIGH : LOW);
+
+    // Hiển thị thời gian và trạng thái LED lên LCD
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Time: ");
+    lcd.print(now.hour());
+    lcd.print(":");
+    lcd.print(now.minute());
+    lcd.print(":");
+    lcd.print(now.second());
+
+    lcd.setCursor(0, 1);
+    lcd.print("LED: ");
+    lcd.print(isLedOn ? "ON" : "OFF");
+
+    delay(1000); // Cập nhật mỗi giây
+}
+#include <Wire.h> // Thư viện cho I2C
+#include <LiquidCrystal_I2C.h> // Thư viện cho màn hình LCD I2C
+#include <RTClib.h> // Thư viện cho RTC DS1307
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+RTC_DS1307 rtc;
+
+const int ledPin = 7; // Chân điều khiển LED
+const int hourOn = 17; // Giờ bật LED
+const int minuteOn = 23; // Phút bật LED
+const int hourOff = 17; // Giờ tắt LED
+const int minuteOff = 32; // Phút tắt LED
+
+void setup() {
+    lcd.init();
+    lcd.backlight();
+    lcd.print("Initializing...");
+    delay(2000);
+
+    pinMode(ledPin, OUTPUT);
+    digitalWrite(ledPin, LOW); // Tắt LED ban đầu
+
+    if (!rtc.begin()) {
+        lcd.clear();
+        lcd.print("RTC Error!");
+        while (1);
+    }
+
+    if (!rtc.isrunning()) {
+        lcd.clear();
+        lcd.print("Setting RTC...");
+        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        delay(1000);
+    }
+
+    lcd.clear();
+    lcd.print("Ready");
+}
+
+void loop() {
+    DateTime now = rtc.now();
+
+    // Xác định thời gian hiện tại
+    int currentHour = now.hour();
+    int currentMinute = now.minute();
+
+    // Biến xác định trạng thái LED
+    bool isLedOn = false;
+
+    if (hourOn < hourOff || (hourOn == hourOff && minuteOn < minuteOff)) {
+        // Trường hợp khoảng thời gian bật/tắt không qua nửa đêm
+        if ((currentHour > hourOn || (currentHour == hourOn && currentMinute >= minuteOn)) &&
+            (currentHour < hourOff || (currentHour == hourOff && currentMinute < minuteOff))) {
+            isLedOn = true;
+        }
+    } else {
+        // Trường hợp khoảng thời gian bật/tắt qua nửa đêm
+        if ((currentHour > hourOn || (currentHour == hourOn && currentMinute >= minuteOn)) ||
+            (currentHour < hourOff || (currentHour == hourOff && currentMinute < minuteOff))) {
+            isLedOn = true;
+        }
+    }
+
+    // Điều khiển LED
+    digitalWrite(ledPin, isLedOn ? HIGH : LOW);
+
+    // Hiển thị thời gian và trạng thái LED lên LCD
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Time: ");
+    lcd.print(now.hour());
+    lcd.print(":");
+    lcd.print(now.minute());
+    lcd.print(":");
+    lcd.print(now.second());
+
+    lcd.setCursor(0, 1);
+    lcd.print("LED: ");
+    lcd.print(isLedOn ? "ON" : "OFF");
+
+    delay(1000); // Cập nhật mỗi giây
+}
