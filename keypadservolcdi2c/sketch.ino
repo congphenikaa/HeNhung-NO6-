@@ -4,7 +4,7 @@
 #include <Servo.h>
 
 // Khai báo LCD
-LiquidCrystal_I2C lcd(0x27, 16, 2);  // Địa chỉ LCD là 0x27 (có thể thay đổi tùy vào màn hình)
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // LCD address is 0x27 (it may change depending on the screen)
 
 // Khai báo Keypad
 const byte ROW_NUM    = 4; // Four rows
@@ -26,10 +26,10 @@ Servo myServo;
 int servoPin = 11;
 
 // Mật khẩu
-String correctPassword = "1234";  // Mật khẩu mặc định
+String correctPassword = "1234";  // Default password
 
 int attemptCounter = 0;
-int maxAttempts = 3;  // Số lần thử nhập sai
+int maxAttempts = 3;  // Max incorrect attempts
 
 // Thời gian cửa mở
 unsigned long doorOpenTime = 0;
@@ -46,13 +46,13 @@ void setup() {
   
   // Khởi tạo Servo
   myServo.attach(servoPin);
-  myServo.write(0);  // Đảm bảo cửa đóng lúc đầu
+  myServo.write(0);  // Make sure the door is closed initially
   
   // Hiển thị "Welcome"
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Welcome");
-  delay(2000); // Hiển thị 2 giây
+  delay(1000); // Display for 2 seconds
 }
 
 void loop() {
@@ -68,10 +68,10 @@ void loop() {
     resetSystem();
   }
   else if (key == 'B') {
-    changePassword();  // Thực hiện đổi mật khẩu khi nhấn nút B
+    changePassword();  // Change password when B is pressed
   }
 
-  // Nếu cửa đang mở, kiểm tra thời gian để đóng cửa tự động
+  // If door is open, check the time to automatically close the door
   if (doorIsOpen && millis() - doorOpenTime >= 10000) {
     closeDoor();
   }
@@ -80,33 +80,59 @@ void loop() {
 void enterPassword() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Nhap mat khau:");
+  lcd.print("Enter password:");
 
   enteredPassword = "";
   passwordEntered = false;
 
-  while (!passwordEntered) {
+  // Reset the attempt counter for each password entry
+  attemptCounter = 0;
+
+  while (true) {
+    // Check if the system is locked due to too many failed attempts
+    if (attemptCounter >= maxAttempts) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Locked for 30s");
+      delay(30000);  // Lock for 30 seconds
+      // Reset attempt counter after the lock period
+      attemptCounter = 0;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Returning...");
+      delay(2000);  // Brief pause before returning to the welcome screen
+
+      returnToMainScreen();  // Go back to the Welcome screen
+      return;
+    }
+
     char key = keypad.getKey();
     if (key) {
-      if (key == '#') {
+      if (key == '#') {  // Password submission
         passwordEntered = true;
         if (enteredPassword == correctPassword) {
-          openDoor();
+          openDoor();  // Door opens if password is correct
+          return;  // Exit the function after opening the door
         } else {
+          attemptCounter++;  // Increment the wrong attempt counter
           lcd.clear();
           lcd.setCursor(0, 0);
-          lcd.print("Mat khau sai!");
-          delay(2000);
-          returnToMainScreen();
+          lcd.print("Wrong pwd!");
+          delay(1000);  // Show wrong password message for 1 second
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Enter password:");  // Ask for password again
+          enteredPassword = "";  // Clear entered password
+          passwordEntered = false;  // Reset passwordEntered flag
         }
       } 
-      else if (key == '*') {  // Xóa ký tự
+      else if (key == '*') {  // Delete character
         if (enteredPassword.length() > 0) {
           enteredPassword.remove(enteredPassword.length() - 1);
           lcd.setCursor(enteredPassword.length(), 1);
           lcd.print(" ");
         }
-      } else {  // Nhập ký tự
+      } else {  // Enter character
         enteredPassword += key;
         lcd.setCursor(enteredPassword.length() - 1, 1);
         lcd.print('*');
@@ -118,15 +144,15 @@ void enterPassword() {
 void openDoor() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Nhap dung!");  // Mật khẩu đúng
+  lcd.print("Correct!");  // Password correct
 
-  // Mở cửa (servo xoay 90 độ)
+  // Open door (servo rotates 90 degrees)
   myServo.write(90);
-  doorOpenTime = millis();  // Lưu thời gian cửa mở
+  doorOpenTime = millis();  // Store door open time
   doorIsOpen = true;
-  delay(3000); // Cửa mở trong 3 giây
+  delay(1000); // Door open for 1 seconds
 
-  // Hiển thị trạng thái cửa
+  // Show door status
   displayDoorStatus();
 }
 
@@ -134,19 +160,19 @@ void displayDoorStatus() {
   lcd.clear();
   lcd.setCursor(0, 0);
   if (doorIsOpen) {
-    lcd.print("Cua dang mo");
+    lcd.print("Door open");
   } else {
-    lcd.print("Cua dang dong");
+    lcd.print("Door closed");
   }
 }
 
 void closeDoor() {
   if (doorIsOpen) {
-    myServo.write(0);  // Đóng cửa lại
+    myServo.write(0);  // Close door
     doorIsOpen = false;
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Cua dong!");
+    lcd.print("Door closed!");
     delay(2000);
     returnToMainScreen();
   }
@@ -155,24 +181,24 @@ void closeDoor() {
 void resetSystem() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("System Restarting...");
+  lcd.print("Restarting...");
   delay(2000);
-  asm volatile ("  jmp 0"); // Khởi động lại hệ thống
+  asm volatile ("  jmp 0"); // Restart system
 }
 
 void returnToMainScreen() {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Welcome");
-  delay(2000);  // Hiển thị "Welcome" trong 2 giây
+  delay(1000);  // Display "Welcome" for 2 seconds
 }
 
 void changePassword() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Nhap mat khau cu:");
+  lcd.print("Enter old pwd:");
 
-  // Nhập mật khẩu cũ để xác nhận
+  // Enter old password to confirm
   String oldPassword = "";
   bool oldPasswordEntered = false;
   
@@ -182,10 +208,10 @@ void changePassword() {
       if (key == '#') {
         oldPasswordEntered = true;
         if (oldPassword == correctPassword) {
-          // Nhập mật khẩu mới
+          // Enter new password
           lcd.clear();
           lcd.setCursor(0, 0);
-          lcd.print("Nhap mat khau moi:");
+          lcd.print("Enter new pwd:");
           
           String newPassword = "";
           bool newPasswordEntered = false;
@@ -195,10 +221,10 @@ void changePassword() {
             if (key) {
               if (key == '#') {
                 newPasswordEntered = true;
-                // Yêu cầu người dùng nhập lại mật khẩu mới để xác nhận
+                // Ask user to re-enter new password for confirmation
                 lcd.clear();
                 lcd.setCursor(0, 0);
-                lcd.print("Xac nhan mat khau moi:");
+                lcd.print("Confirm new pwd:");
 
                 String confirmPassword = "";
                 bool confirmPasswordEntered = false;
@@ -209,27 +235,27 @@ void changePassword() {
                     if (key == '#') {
                       confirmPasswordEntered = true;
                       if (newPassword == confirmPassword) {
-                        correctPassword = newPassword;  // Cập nhật mật khẩu mới
+                        correctPassword = newPassword;  // Update password
                         lcd.clear();
                         lcd.setCursor(0, 0);
-                        lcd.print("Mat khau moi da cap nhat!");
+                        lcd.print("Password updated!");
                         delay(2000);
                         returnToMainScreen();
                       } else {
                         lcd.clear();
                         lcd.setCursor(0, 0);
-                        lcd.print("Mat khau moi khong khop!");
+                        lcd.print("Pwd mismatch!");
                         delay(2000);
                         returnToMainScreen();
                       }
                     }
-                    else if (key == '*') {  // Xóa ký tự
+                    else if (key == '*') {  // Delete character
                       if (confirmPassword.length() > 0) {
                         confirmPassword.remove(confirmPassword.length() - 1);
                         lcd.setCursor(confirmPassword.length(), 1);
                         lcd.print(" ");
                       }
-                    } else {  // Nhập ký tự
+                    } else {  // Enter character
                       confirmPassword += key;
                       lcd.setCursor(confirmPassword.length() - 1, 1);
                       lcd.print('*');
@@ -237,13 +263,13 @@ void changePassword() {
                   }
                 }
               }
-              else if (key == '*') {  // Xóa ký tự
+              else if (key == '*') {  // Delete character
                 if (newPassword.length() > 0) {
                   newPassword.remove(newPassword.length() - 1);
                   lcd.setCursor(newPassword.length(), 1);
                   lcd.print(" ");
                 }
-              } else {  // Nhập ký tự
+              } else {  // Enter character
                 newPassword += key;
                 lcd.setCursor(newPassword.length() - 1, 1);
                 lcd.print('*');
@@ -253,18 +279,18 @@ void changePassword() {
         } else {
           lcd.clear();
           lcd.setCursor(0, 0);
-          lcd.print("Mat khau cu sai!");
+          lcd.print("Old pwd wrong!");
           delay(2000);
           returnToMainScreen();
         }
       }
-      else if (key == '*') {  // Xóa ký tự
+      else if (key == '*') {  // Delete character
         if (oldPassword.length() > 0) {
           oldPassword.remove(oldPassword.length() - 1);
           lcd.setCursor(oldPassword.length(), 1);
           lcd.print(" ");
         }
-      } else {  // Nhập ký tự
+      } else {  // Enter character
         oldPassword += key;
         lcd.setCursor(oldPassword.length() - 1, 1);
         lcd.print('*');
