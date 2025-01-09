@@ -34,7 +34,7 @@ constexpr uint8_t servoPin = 8;                                                 
 constexpr uint8_t buzzerPin = 5;                                                              // Chân nối buzzer
 
 char initial_password[4] = {'1', '2', '3', '4'};                                              // Mật khẩu mặc định
-String tagUID = "70 08 F7 55";                                                                // UID của thẻ RFID được chấp nhận
+String tagUID = "73 71 1F FD";                                                                // UID của thẻ RFID được chấp nhận
 char password[4];                                                                             // Mật khẩu nhập từ keypad
 boolean RFIDMode = true;                                                                      // Chế độ RFID (true) hoặc chế độ mật khẩu (false)
 char key_pressed = 0;                                                                         // Biến lưu giữ nút được nhấn trên keypad
