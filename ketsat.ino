@@ -26,7 +26,7 @@ char keys[ROW_NUM][COLUMN_NUM] = {
   {'*','0','#','D'}
 };
 byte pin_rows[ROW_NUM] = {5, 6, 7, 8};  // Arduino pins connected to the row pinouts of the keypad
-byte pin_column[COLUMN_NUM] = {A0, A1, A2, A3};  // Arduino pins connected to the column pinouts of the keypad
+byte pin_column[COLUMN_NUM] = {A3, A2, A1, A0};  // Arduino pins connected to the column pinouts of the keypad
 Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
 
 // LCD setup
@@ -42,8 +42,8 @@ int ledRed = 2;    // Red LED for failure
 int buzzerPin = 1; // Buzzer pin
 
 // Predefined RFID card ID and PIN
-String validCardID = "73711FFD";  // Thẻ của bạn
-String validPin = "1234";          // Default PIN
+String validCardID = "73711ffd";  // Thẻ của bạn
+String validPin = "1111";          // Default PIN
 
 // Max attempts
 int maxCardAttempts = 3;           // Giới hạn số lần quẹt thẻ sai
@@ -60,7 +60,8 @@ void setup() {
   SPI.begin();
   mfrc522.PCD_Init();
   
-  lcd.begin();
+  lcd.init();
+  lcd.backlight();
   lcd.print("Safe System");
   lcd.setCursor(0, 1);
   lcd.print("Scan your card");
@@ -98,13 +99,15 @@ void loop() {
         String enteredPin = "";
         char key = keypad.getKey();
         
-        while (key != '#') {
+        // Read keys until 4 digits are entered (adjust this length based on your PIN length)
+        while (enteredPin.length() < 4) {
+          key = keypad.getKey();
+          
           if (key) {
-            enteredPin += key;
-            lcd.print('*');
+            enteredPin += key;  // Add key to enteredPin
+            lcd.print('*');  // Show '*' on the LCD for each key press
             delay(300);
           }
-          key = keypad.getKey();
           
           // Timeout after a period of inactivity
           if (millis() - lastTime > timeout) {
@@ -116,6 +119,7 @@ void loop() {
           }
         }
         
+        // Now enteredPin has exactly 4 characters
         if (enteredPin == validPin) {
           lcd.clear();
           lcd.print("Access Granted");
@@ -165,6 +169,7 @@ void loop() {
     }
   }
 }
+
 
 void showMenu() {
   lcd.clear();
