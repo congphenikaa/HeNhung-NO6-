@@ -25,16 +25,15 @@ byte pin_column[COLUMN_NUM] = {2, 3, 4, 5};
 
 Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
 
-// Servo Motor
-Servo myServo;
-const int servoPin = 6;
-
-// RFID
+//RFID
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 rfid(SS_PIN, RST_PIN);
+String authorizedUID = "DE 4A 9B 23";
 
-String authorizedUID = "DE 4A 9B 23"; // UID hợp lệ của thẻ RFID
+// Servo Motor
+Servo myServo;
+const int servoPin = 6;
 
 // Mật khẩu
 String correctPassword = "1234";
@@ -61,7 +60,6 @@ void setup() {
   Serial.begin(9600);
   SPI.begin();
   rfid.PCD_Init();
-
   loadPasswordFromEEPROM();
   returnMainScreen();
 }
@@ -80,7 +78,7 @@ void loop() {
     doorIsOpen ? closeDoor() : showMessage("Door is closed!", 1000);
   } else if (key == 'B') {
     changePassword();
-  } else if (key == 'D') {
+  }  else if (key == 'D') {
     readRFID();
   }
 
@@ -89,16 +87,7 @@ void loop() {
   }
 }
 
-// Hàm quay về màn hình chính
-void returnMainScreen() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("A:Open C:Close");
-  lcd.setCursor(0, 1);
-  lcd.print("B:ChangePwd D:RFID");
-}
 
-// Đọc RFID
 void readRFID() {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -129,7 +118,42 @@ void readRFID() {
   returnMainScreen();
 }
 
-// Mở cửa
+// Hàm quay về màn hình chính
+void returnMainScreen() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("A:Open C:Close");
+  lcd.setCursor(0, 1);
+  lcd.print("B:CgPwd D:RFID");
+}
+
+// Hàm nhập mật khẩu
+String getPasswordInput(const char* prompt) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(prompt);
+
+  String input = "";
+  while (true) {
+    char key = keypad.getKey();
+    if (key) {
+      if (key == '#') return input; // Nhập xong
+      if (key == '*' && input.length() > 0) {  // Xóa ký tự cuối
+        input.remove(input.length() - 1);
+      } else if (key != '*') {
+        input += key;
+      }
+
+      lcd.setCursor(0, 1);
+      lcd.print("                ");  // Xóa dòng cũ
+      lcd.setCursor(0, 1);
+      for (int i = 0; i < input.length(); i++) {
+        lcd.print('*');
+      }
+    }
+  }
+}
+
 void openDoor() {
   showMessage("Correct!", 1000);
   myServo.write(90);
@@ -138,7 +162,6 @@ void openDoor() {
   showMessage("Door open!", 1000);
 }
 
-// Đóng cửa
 void closeDoor() {
   myServo.write(0);
   doorIsOpen = false; 
@@ -146,7 +169,6 @@ void closeDoor() {
   returnMainScreen();
 }
 
-// Nhập mật khẩu
 void enterPassword() {
   attemptCounter = 0;
   
@@ -169,7 +191,6 @@ void enterPassword() {
   returnMainScreen();
 }
 
-// Đổi mật khẩu
 void changePassword() {
   String oldPassword = getPasswordInput("Enter old pwd:");
 
@@ -180,13 +201,12 @@ void changePassword() {
   }
 
   String newPassword = getPasswordInput("Enter new pwd:");
-  String confirmPassword = getPasswordInput("Confirm new pwd:");
-
   if (newPassword == correctPassword) {
-    showMessage("New pwd same as old!", 1000);
-    returnMainScreen();
-    return;
+      showMessage("New pwd same as old!", 1000);  // Kiểm tra nếu mật khẩu mới trùng với mật khẩu cũ
+      returnMainScreen();
+      return;
   }
+  String confirmPassword = getPasswordInput("Confirm new pwd:");
 
   if (newPassword == confirmPassword) {
     correctPassword = newPassword;
@@ -195,20 +215,19 @@ void changePassword() {
   } else {
     showMessage("Mismatch!", 1000);
   }
-  
   returnMainScreen();
 }
 
-// Lưu mật khẩu vào EEPROM
+// Hàm lưu mật khẩu vào EEPROM
 void savePasswordToEEPROM() {
   int len = correctPassword.length();
-  EEPROM.write(0, len);
+  EEPROM.write(0, len);  // Lưu độ dài mật khẩu vào địa chỉ 0
   for (int i = 0; i < len; i++) {
-    EEPROM.write(i + 1, correctPassword[i]);
+    EEPROM.write(i + 1, correctPassword[i]);  // Lưu từng ký tự mật khẩu
   }
 }
 
-// Đọc mật khẩu từ EEPROM
+// Hàm đọc mật khẩu từ EEPROM
 void loadPasswordFromEEPROM() {
   int len = EEPROM.read(0);
   if (len < 1 || len > 10) { 
@@ -222,7 +241,6 @@ void loadPasswordFromEEPROM() {
   }
 }
 
-// Hiển thị thông báo
 void showMessage(const char* message, int delayMs) {
   lcd.clear();
   lcd.setCursor(0, 0);
