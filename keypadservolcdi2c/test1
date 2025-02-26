@@ -33,9 +33,7 @@ String correctPassword = "1234";
 // Giới hạn thử mật khẩu
 const int maxAttempts = 3;
 int attemptCounter = 0;
-const int redLED = 13;
-const int yellowLED = 12;
-const int greenLED = 10;
+
 
 // Trạng thái cửa
 unsigned long doorOpenTime = 0;
@@ -49,9 +47,6 @@ const unsigned long lockTime = 10000; // 10s khóa
 void setup() {
   lcd.init();
   lcd.backlight();
-  pinMode(redLED, OUTPUT);
-  pinMode(yellowLED, OUTPUT);
-  pinMode(greenLED, OUTPUT);
   myServo.attach(servoPin);
   myServo.write(0);
   
@@ -85,9 +80,6 @@ void loop() {
 void returnMainScreen() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  digitalWrite(redLED, LOW); 
-  digitalWrite(yellowLED, LOW); 
-  digitalWrite(greenLED, LOW); 
   lcd.print("A:Open C:Close");
   lcd.setCursor(0, 1);
   lcd.print("B:ChangePassword");
@@ -125,7 +117,6 @@ void openDoor() {
   myServo.write(90);
   doorOpenTime = millis();
   doorIsOpen = true;
-  digitalWrite(greenLED, HIGH);
   showMessage("Door open!", 1000);
 }
 
@@ -154,13 +145,11 @@ void enterPassword() {
   // Khóa sau quá số lần thử
   isLocked = true;
   lockStartTime = millis();
-  digitalWrite(redLED, HIGH); 
   showMessage("Locked for 10s", 10000);
   returnMainScreen();
 }
 
 void changePassword() {
-  digitalWrite(yellowLED, HIGH); // Bật đèn vàng khi thay đổi mật khẩu
 
   String oldPassword = getPasswordInput("Enter old pwd:");
 
@@ -171,6 +160,11 @@ void changePassword() {
   }
 
   String newPassword = getPasswordInput("Enter new pwd:");
+  if (newPassword == correctPassword) {
+      showMessage("New pwd same as old!", 1000);  // Kiểm tra nếu mật khẩu mới trùng với mật khẩu cũ
+      returnMainScreen();
+      return;
+  }
   String confirmPassword = getPasswordInput("Confirm new pwd:");
 
   if (newPassword == confirmPassword) {
@@ -185,7 +179,6 @@ void changePassword() {
   returnMainScreen();
 }
 
-// Hàm lưu mật khẩu vào EEPROM
 void savePasswordToEEPROM() {
   int len = correctPassword.length();
   EEPROM.write(0, len);  // Lưu độ dài mật khẩu vào địa chỉ 0
