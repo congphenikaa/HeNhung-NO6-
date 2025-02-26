@@ -29,7 +29,7 @@ Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_N
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 rfid(SS_PIN, RST_PIN);
-String authorizedUID = "DE 4A 9B 23";
+String authorizedUID = "73 71 1F FD";
 
 // Servo Motor
 Servo myServo;
