@@ -158,6 +158,11 @@ void changePassword() {
   }
 
   String newPassword = getPasswordInput("Enter new pwd:");
+  if (newPassword == correctPassword) {
+      showMessage("New pwd same as old!", 1000);  // Kiểm tra nếu mật khẩu mới trùng với mật khẩu cũ
+      returnMainScreen();
+      return;
+  }
   String confirmPassword = getPasswordInput("Confirm new pwd:");
 
   if (newPassword == confirmPassword) {
