@@ -1,0 +1,242 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Keypad.h>
+#include <Servo.h>
+#include <EEPROM.h>
+
+// LCD
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Keypad
+const byte ROW_NUM = 4;
+const byte COLUMN_NUM = 4;
+
+char keys[ROW_NUM][COLUMN_NUM] = {
+  {'A','3','2','1'},
+  {'B','6','5','4'},
+  {'C','9','8','7'},
+  {'D','#','0','*'}
+};
+
+byte pin_rows[ROW_NUM] = {9, 8, 7, 6};  
+byte pin_column[COLUMN_NUM] = {2, 3, 4, 5};
+
+Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
+
+// Servo
+Servo myServo;
+const int servoPin = 11;
+int servoPosition = 0;  // Lưu trạng thái servo
+
+// Mật khẩu
+String correctPassword;
+
+// Giới hạn thử mật khẩu
+const int maxAttempts = 3;
+int attemptCounter = 0;
+
+// Đèn LED
+const int redLED = 13;   
+const int yellowLED = 12;
+const int greenLED = 10;  
+
+// Trạng thái khóa cửa
+unsigned long doorOpenTime = 0;
+bool doorIsOpen = false;
+bool isLocked = false;
+unsigned long lockStartTime = 0;
+const unsigned long lockTime = 10000; // 10s khóa
+
+void setup() {
+  lcd.init();
+  lcd.backlight();
+
+  pinMode(redLED, OUTPUT);
+  pinMode(yellowLED, OUTPUT);
+  pinMode(greenLED, OUTPUT);
+  
+  myServo.attach(servoPin);
+  myServo.write(servoPosition);  // Đảm bảo servo ở vị trí ban đầu
+
+  Serial.begin(9600);
+
+  correctPassword = readPasswordFromEEPROM();
+  if (correctPassword == "") {
+    correctPassword = "1234";  
+    savePasswordToEEPROM(correctPassword);
+  }
+
+  returnMainScreen();
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  if (isLocked && currentMillis - lockStartTime < lockTime) {
+    return;
+  }
+  isLocked = false;
+
+  char key = keypad.getKey();
+  if (key) {
+    handleKeyPress(key);
+  }
+
+  if (doorIsOpen && currentMillis - doorOpenTime >= 10000) {
+    closeDoor();
+  }
+}
+
+// Xử lý sự kiện bấm phím
+void handleKeyPress(char key) {
+  if (key == 'A') {
+    enterPassword();
+  } else if (key == 'C') {
+    doorIsOpen ? closeDoor() : showMessage("Door is closed!", 1000);
+  } else if (key == 'B') {
+    changePassword();
+  }
+}
+
+// Hiển thị màn hình chính
+void returnMainScreen() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  digitalWrite(redLED, LOW); 
+  digitalWrite(yellowLED, LOW); 
+  digitalWrite(greenLED, LOW); 
+  lcd.print("A:Open C:Close");
+  lcd.setCursor(0, 1);
+  lcd.print("B:ChangePassword");
+}
+
+// Nhập mật khẩu
+String getPasswordInput(const char* prompt) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(prompt);
+
+  String input = "";
+  while (true) {
+    char key = keypad.getKey();
+    if (key) {
+      if (key == '#') return input;
+      if (key == '*' && input.length() > 0) {
+        input.remove(input.length() - 1);
+      } else if (key != '*') {
+        input += key;
+      }
+
+      lcd.setCursor(0, 1);
+      lcd.print("                ");  
+      lcd.setCursor(0, 1);
+      for (int i = 0; i < input.length(); i++) {
+        lcd.print('*');
+      }
+    }
+  }
+}
+
+// Mở cửa
+void openDoor() {
+  showMessage("Correct!", 500);
+  servoPosition = 90;
+  myServo.write(servoPosition);
+  doorOpenTime = millis();
+  doorIsOpen = true;
+  digitalWrite(greenLED, HIGH);
+  showMessage("Door open!", 500);
+}
+
+// Đóng cửa
+void closeDoor() {
+  servoPosition = 0;
+  myServo.write(servoPosition);
+  doorIsOpen = false;
+  digitalWrite(greenLED, LOW);
+  showMessage("Door closed!", 500);
+  returnMainScreen();
+}
+
+// Nhập mật khẩu
+void enterPassword() {
+  attemptCounter = 0;
+  
+  while (attemptCounter < maxAttempts) {
+    String enteredPassword = getPasswordInput("Enter password:");
+
+    if (enteredPassword == correctPassword) {
+      openDoor();
+      return;
+    } else {
+      showMessage("Wrong password!", 500);
+      attemptCounter++;
+    }
+  }
+
+  isLocked = true;
+  lockStartTime = millis();
+  digitalWrite(redLED, HIGH);
+  showMessage("Locked for 10s", 1000);
+  returnMainScreen();
+}
+
+// Đổi mật khẩu
+void changePassword() {
+  digitalWrite(yellowLED, HIGH);
+
+  String oldPassword = getPasswordInput("Enter old pwd:");
+  if (oldPassword != correctPassword) {
+    showMessage("Wrong old pwd!", 500);
+    digitalWrite(yellowLED, LOW);
+    returnMainScreen();
+    return;
+  }
+
+  String newPassword = getPasswordInput("Enter new pwd:");
+  String confirmPassword = getPasswordInput("Confirm new pwd:");
+
+  if (newPassword == confirmPassword) {
+    correctPassword = newPassword;
+    savePasswordToEEPROM(newPassword);
+    showMessage("Password updated!", 500);
+  } else {
+    showMessage("Mismatch!", 500);
+  }
+
+  digitalWrite(yellowLED, LOW);
+  returnMainScreen();
+}
+
+// Hiển thị thông báo không dùng delay()
+void showMessage(const char* message, int duration) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(message);
+
+  unsigned long start = millis();
+  while (millis() - start < duration) {
+    char key = keypad.getKey();
+    if (key) handleKeyPress(key);
+  }
+}
+
+// Lưu mật khẩu vào EEPROM
+void savePasswordToEEPROM(String password) {
+  for (int i = 0; i < password.length(); i++) {
+    EEPROM.update(i, password[i]);
+  }
+  EEPROM.update(password.length(), '\0');
+}
+
+// Đọc mật khẩu từ EEPROM
+String readPasswordFromEEPROM() {
+  String password = "";
+  char ch;
+  for (int i = 0; i < 20; i++) {
+    ch = EEPROM.read(i);
+    if (ch == '\0') break;
+    password += ch;
+  }
+  return password;
+}
