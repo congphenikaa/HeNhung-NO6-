@@ -63,7 +63,7 @@ void setup() {
 
   // Kiểm tra EEPROM có dữ liệu chưa
   if (EEPROM.read(0) != 0xFF) {  
-    correctPassword = readPasswordFromEEPROM();
+    correctPassword = defaultPassword;
   } else {  
     correctPassword = defaultPassword;  
     savePasswordToEEPROM(correctPassword);
