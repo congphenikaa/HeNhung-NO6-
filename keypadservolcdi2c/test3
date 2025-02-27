@@ -61,6 +61,7 @@ void setup() {
   SPI.begin();
   rfid.PCD_Init();
   loadPasswordFromEEPROM();
+  loadUIDFromEEPROM();
   returnMainScreen();
 }
 
@@ -240,6 +241,27 @@ void loadPasswordFromEEPROM() {
     }
   }
 }
+void saveUIDToEEPROM(String uid) {
+  int len = uid.length();
+  EEPROM.write(20, len); // Lưu độ dài UID vào địa chỉ 20
+  for (int i = 0; i < len; i++) {
+    EEPROM.write(21 + i, uid[i]); // Lưu từng ký tự UID
+  }
+}
+
+void loadUIDFromEEPROM() {
+  int len = EEPROM.read(20);
+  if (len < 1 || len > 20) {  
+    authorizedUID = "DE 4A 9B 23"; // Giá trị mặc định
+    saveUIDToEEPROM(authorizedUID);
+  } else {
+    authorizedUID = "";
+    for (int i = 0; i < len; i++) {
+      authorizedUID += char(EEPROM.read(21 + i));
+    }
+  }
+}
+
 
 void showMessage(const char* message, int delayMs) {
   lcd.clear();
