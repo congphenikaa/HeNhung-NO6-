@@ -3,8 +3,6 @@
 #include <Keypad.h>
 #include <Servo.h>
 #include <EEPROM.h>
-#include <SPI.h>
-#include <MFRC522.h>
 
 // LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -20,20 +18,14 @@ char keys[ROW_NUM][COLUMN_NUM] = {
   {'D','#','0','*'}
 };
 
-byte pin_rows[ROW_NUM] = {A0, A1, A2, A3};  
+byte pin_rows[ROW_NUM] = {9, 8, 7, 6};  
 byte pin_column[COLUMN_NUM] = {2, 3, 4, 5};
 
 Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
 
-//RFID
-#define SS_PIN 10
-#define RST_PIN 9
-MFRC522 rfid(SS_PIN, RST_PIN);
-String authorizedUID = "73 71 1F FD";
-
 // Servo Motor
 Servo myServo;
-const int servoPin = 6;
+const int servoPin = 11;
 
 // Mật khẩu
 String correctPassword = "1234";
@@ -58,10 +50,7 @@ void setup() {
   myServo.write(0);
   
   Serial.begin(9600);
-  SPI.begin();
-  rfid.PCD_Init();
   loadPasswordFromEEPROM();
-  loadUIDFromEEPROM();
   returnMainScreen();
 }
 
@@ -79,44 +68,11 @@ void loop() {
     doorIsOpen ? closeDoor() : showMessage("Door is closed!", 1000);
   } else if (key == 'B') {
     changePassword();
-  }  else if (key == 'D') {
-    readRFID();
   }
 
   if (doorIsOpen && millis() - doorOpenTime >= 10000) {
     closeDoor();
   }
-}
-
-
-void readRFID() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Scan RFID...");
-
-  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
-    showMessage("No card found!", 1000);
-    returnMainScreen();
-    return;
-  }
-
-  String readUID = "";
-  for (byte i = 0; i < rfid.uid.size; i++) {
-    readUID += String(rfid.uid.uidByte[i], HEX);
-    if (i < rfid.uid.size - 1) readUID += " ";
-  }
-
-  Serial.print("UID: ");
-  Serial.println(readUID);
-
-  if (readUID == authorizedUID) {
-    openDoor();
-  } else {
-    showMessage("Access Denied!", 1000);
-  }
-
-  rfid.PICC_HaltA();
-  returnMainScreen();
 }
 
 // Hàm quay về màn hình chính
@@ -125,7 +81,7 @@ void returnMainScreen() {
   lcd.setCursor(0, 0);
   lcd.print("A:Open C:Close");
   lcd.setCursor(0, 1);
-  lcd.print("B:CgPwd D:RFID");
+  lcd.print("B:ChangePassword");
 }
 
 // Hàm nhập mật khẩu
@@ -164,8 +120,8 @@ void openDoor() {
 }
 
 void closeDoor() {
-  myServo.write(0);
   doorIsOpen = false; 
+  myServo.write(0);
   showMessage("Door closed!", 1000);
   returnMainScreen();
 }
@@ -241,27 +197,6 @@ void loadPasswordFromEEPROM() {
     }
   }
 }
-void saveUIDToEEPROM(String uid) {
-  int len = uid.length();
-  EEPROM.write(20, len); // Lưu độ dài UID vào địa chỉ 20
-  for (int i = 0; i < len; i++) {
-    EEPROM.write(21 + i, uid[i]); // Lưu từng ký tự UID
-  }
-}
-
-void loadUIDFromEEPROM() {
-  int len = EEPROM.read(20);
-  if (len < 1 || len > 20) {  
-    authorizedUID = "DE 4A 9B 23"; // Giá trị mặc định
-    saveUIDToEEPROM(authorizedUID);
-  } else {
-    authorizedUID = "";
-    for (int i = 0; i < len; i++) {
-      authorizedUID += char(EEPROM.read(21 + i));
-    }
-  }
-}
-
 
 void showMessage(const char* message, int delayMs) {
   lcd.clear();
