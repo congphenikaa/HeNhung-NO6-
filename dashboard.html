@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP8266 LED Control</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCfkM-c6TM_89dL3SdABMUi_0IYsFsH9D0",
+            authDomain: "demo1-f568f.firebaseapp.com",
+            databaseURL: "https://demo1-f568f-default-rtdb.firebaseio.com",
+            projectId: "demo1-f568f",
+            storageBucket: "demo1-f568f.firebasestorage.app",
+            messagingSenderId: "726620519542",
+            appId: "1:726620519542:web:1c5cad303c4baffdd9b357"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        function setLED(state) {
+            set(ref(db, '/led'), state);
+        }
+
+        async function getLEDState() {
+            const snapshot = await get(ref(db, '/led'));
+            if (snapshot.exists()) {
+                return snapshot.val();
+            }
+            return 0;
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            const ledButton = document.getElementById("ledButton");
+            let ledState = await getLEDState();
+            updateButton(ledState);
+
+            ledButton.addEventListener("click", async () => {
+                ledState = ledState === 1 ? 0 : 1;
+                setLED(ledState);
+                updateButton(ledState);
+            });
+        });
+
+        function updateButton(state) {
+            const ledButton = document.getElementById("ledButton");
+            if (state === 1) {
+                ledButton.textContent = "Turn OFF";
+                ledButton.style.backgroundColor = "red";
+            } else {
+                ledButton.textContent = "Turn ON";
+                ledButton.style.backgroundColor = "green";
+            }
+        }
+    </script>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin-top: 50px;
+        }
+        button {
+            font-size: 20px;
+            padding: 10px 20px;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>ESP8266 LED Control</h1>
+    <button id="ledButton">Loading...</button>
+</body>
+</html>
