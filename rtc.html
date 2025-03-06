@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP8266 Time Control</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+        // Cấu hình Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCfkM-c6TM_89dL3SdABMUi_0IYsFsH9D0",
+            authDomain: "demo1-f568f.firebaseapp.com",
+            databaseURL: "https://demo1-f568f-default-rtdb.firebaseio.com",
+            projectId: "demo1-f568f",
+            storageBucket: "demo1-f568f.firebasestorage.app",
+            messagingSenderId: "726620519542",
+            appId: "1:726620519542:web:1c5cad303c4baffdd9b357"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        function setTimeToFirebase() {
+            const timeInput = document.getElementById("timeInput").value;
+            if (timeInput) {
+                set(ref(db, '/time'), timeInput)
+                    .then(() => alert("Time updated successfully!"))
+                    .catch((error) => alert("Error: " + error));
+            }
+        }
+
+        async function getTimeFromFirebase() {
+            const snapshot = await get(ref(db, '/time'));
+            if (snapshot.exists()) {
+                document.getElementById("timeInput").value = snapshot.val();
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", getTimeFromFirebase);
+    </script>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin-top: 50px;
+        }
+        input, button {
+            font-size: 20px;
+            padding: 10px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ESP8266 Time Control</h1>
+    <input type="time" id="timeInput">
+    <button onclick="setTimeToFirebase()">Set Time</button>
+</body>
+</html>
